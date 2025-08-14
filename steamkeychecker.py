@@ -93,13 +93,24 @@ def get_dir_size(path: Path) -> int:
                     continue
     return total
 
+
 def manage_chrome_profile() -> Path:
     """
     Checks for an existing Chrome profile, creates one if it doesn't exist,
-    and clears it if it exceeds a size threshold.
+    and clears it if it exceeds a size threshold. Works on Windows, macOS, and Linux.
     """
-    # Use a dedicated folder in AppData to avoid cluttering the user's desktop/documents
-    profile_path = Path(os.getenv('LOCALAPPDATA')) / 'SteamKeyChecker' / 'ChromeProfile'
+    # Determine the appropriate base path for application data based on the OS
+    if sys.platform == "win32":
+        # Windows: C:\Users\USERNAME\AppData\Local
+        base_path = Path(os.getenv('LOCALAPPDATA'))
+    elif sys.platform == "darwin":
+        # macOS: /Users/USERNAME/Library/Application Support
+        base_path = Path.home() / 'Library/Application Support'
+    else:
+        # Linux: /home/USERNAME/.local/share (standard)
+        base_path = Path.home() / '.local/share'
+
+    profile_path = base_path / 'SteamKeyChecker' / 'ChromeProfile'
     
     MAX_SIZE_MB = 500
     MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
@@ -113,16 +124,13 @@ def manage_chrome_profile() -> Path:
                 print(f"> Chrome profile size ({size_in_mb:.1f} MB) exceeds the {MAX_SIZE_MB} MB limit.")
                 print("> Resetting profile to prevent issues. You will need to log in again.")
                 shutil.rmtree(profile_path)
-                # Let Chrome recreate it on launch
             else:
                 print(f"> Using existing Chrome profile (Size: {size_in_mb:.1f} MB).")
         except Exception as e:
             print(f"[WARNING] Could not check or clear Chrome profile. A new session will be created. Error: {e}")
-            # If we can't manage it, better to just let Chrome handle it
     else:
         print("> No existing Chrome profile found. A new one will be created to save your login.")
 
-    # Ensure the parent directory exists before Chrome uses it
     profile_path.parent.mkdir(parents=True, exist_ok=True)
     return profile_path
 
