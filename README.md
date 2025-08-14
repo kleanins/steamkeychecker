@@ -1,6 +1,6 @@
 # Steam CD-Key Checker Bot
 ────────────────────────────────────────────────────────────────────────
-Version: 1.0
+Version: 1.1
 
 ## Description
 
@@ -12,7 +12,7 @@ Steam Partner "Query CD Key" page, and saves the results to
 
 ## Method 1: Easy Usage (.exe)
 
-This is the recommended method for most users.
+**For Windows users only.** This is the recommended method.
 
 1.  Ensure **Google Chrome** is installed on your computer.
 2.  Go to the **[Releases Page](https://github.com/kleanins/steamkeychecker/releases)**.
@@ -27,42 +27,58 @@ This is the recommended method for most users.
 
 ## Method 2: Running from Source (.py)
 
-This method is for developers who want to run the Python script directly.
+This method is for **Windows, macOS, and Linux** users who want to run the Python script directly.
 
 #### Setup & Usage:
 
-1.  Ensure Python and Google Chrome are installed.
-2.  Clone this repository or download the source code (`steamkeychecker.py`) to your Desktop.
-3.  Open PowerShell or CMD and install the required libraries:
-    ```
-    pip install pandas selenium webdriver-manager
-    ```
-    *If that fails, try:*
-    ```
-    py -m pip install pandas selenium webdriver-manager
-    ```
+1.  Ensure Python 3 and Google Chrome are installed.
+2.  Download the source code (`steamkeychecker.py`) to your Desktop.
+3.  Open your **Terminal** (CMD/PowerShell on Windows) and install the required libraries:
+    
+    *   **On Windows:**
+        ```
+        pip install pandas selenium webdriver-manager
+        ```
+        *If that fails, try:*
+        ```
+        py -m pip install pandas selenium webdriver-manager
+        ```
+
+    *   **On macOS or Linux:**
+        ```
+        pip3 install pandas selenium webdriver-manager
+        ```
+
 4.  Place your CSV file named "sent.csv" on your Desktop.
 5.  The file MUST have a column named "CD Key".
-6.  To run the script, first navigate to your Desktop folder in PowerShell/CMD.
-    *   *Standard command:*
+6.  Navigate to your Desktop folder in your Terminal:
+
+    *   **On Windows (CMD):**
+        *   *Standard:* `cd Desktop`
+        *   *OneDrive:* `cd %OneDrive%\Desktop`
+
+    *   **On Windows (PowerShell):**
+        *   *Standard:* `cd Desktop`
+        *   *OneDrive:* `cd "$Env:OneDrive\Desktop"`
+
+    *   **On macOS or Linux:**
         ```
-        cd Desktop
+        cd ~/Desktop
         ```
-    *   *For OneDrive users (PowerShell):*
+7.  Once in the Desktop folder, run the script:
+
+    *   **On Windows:**
         ```
-        cd "$Env:OneDrive\Desktop"
+        python steamkeychecker.py
         ```
-    *   *For OneDrive users (CMD):*
+        *If that fails, try:*
         ```
-        cd %OneDrive%\Desktop
+        py steamkeychecker.py
         ```
-7.  Once you are in the Desktop folder, run the script:
-    ```
-    python steamkeychecker.py
-    ```
-    *If that fails, try:*
-    ```
-    py steamkeychecker.py
-    ```
+
+    *   **On macOS or Linux:**
+        ```
+        python3 steamkeychecker.py
+        ```
 8.  A Chrome window will open. Log in to your Steam Partner account.
 9.  Follow the prompts in the console to start the process.
