@@ -33,16 +33,21 @@ This method is for **Windows, macOS, and Linux** users who want to run the Pytho
 
 1.  Ensure Python 3 and Google Chrome are installed.
 2.  Download the source code (`steamkeychecker.py`) to your Desktop.
-3.  Open your **Terminal** (CMD/PowerShell on Windows) and install the required libraries:
+3.  Open your **Terminal**.
+    
+    *   **On macOS, first run this one-time command to install developer tools (if not already installed):**
+        ```
+        xcode-select --install
+        ```
+        *(Click "Install" when a window pops up and wait for it to finish.)*
+
+4.  Install the required libraries in the Terminal:
     
     *   **On Windows:**
         ```
         pip install pandas selenium webdriver-manager
         ```
-        *If that fails, try:*
-        ```
-        py -m pip install pandas selenium webdriver-manager
-        ```
+        *If that fails, try:* `py -m pip install ...`
 
     *   **On macOS or Linux:**
         ```
