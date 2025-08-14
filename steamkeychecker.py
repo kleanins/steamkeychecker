@@ -1,7 +1,7 @@
 r"""
 Steam CD-Key Checker Bot
 ────────────────────────────────────────────────────────────────────────
-Version: 1.0
+Version: 1.1
 
 Description:
 Reads 'sent.csv' from the user's Desktop, queries each key on the 
