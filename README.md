@@ -1,6 +1,6 @@
 # Steam CD-Key Checker Bot
 ────────────────────────────────────────────────────────────────────────
-Version: 1.1
+Version: 1.2
 
 ## Description
 
@@ -47,7 +47,7 @@ This method is for **Windows, macOS, and Linux** users who want to run the Pytho
         ```
         pip install pandas selenium webdriver-manager
         ```
-        *If that fails, try:* `py -m pip install ...`
+        *If that fails, try:* `py -m pip install pandas selenium webdriver-manager`
 
     *   **On macOS or Linux:**
         ```
