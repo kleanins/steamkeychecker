@@ -11,10 +11,10 @@ Steam Partner "Query CD Key" page, and saves the results to
 Setup & Usage:
 1. Ensure Python and Google Chrome are installed.
 2. Open PowerShell and run: 
-   pip install pandas selenium
+   pip install pandas selenium webdriver-manager
    
    If that fails
-   py -m pip install pandas selenium
+   py -m pip install pandas selenium webdriver-manager
    
 3. Place your CSV file named 'sent.csv' on your Desktop.
 4. The file MUST have a column named 'CD Key'.
@@ -48,8 +48,6 @@ Setup & Usage:
 import sys
 import time
 import logging
-import os
-import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -76,66 +74,6 @@ def get_desktop_path() -> Path:
 
 DESKTOP_PATH = get_desktop_path()
 
-# --- NEW HELPER FUNCTIONS FOR PROFILE MANAGEMENT ---
-
-def get_dir_size(path: Path) -> int:
-    """Recursively get the size of a directory in bytes."""
-    total = 0
-    with os.scandir(path) as it:
-        for entry in it:
-            if entry.is_file():
-                total += entry.stat().st_size
-            elif entry.is_dir():
-                try:
-                    total += get_dir_size(Path(entry.path))
-                except FileNotFoundError:
-                    # Catch race conditions where a file is deleted while scanning
-                    continue
-    return total
-
-
-def manage_chrome_profile() -> Path:
-    """
-    Checks for an existing Chrome profile, creates one if it doesn't exist,
-    and clears it if it exceeds a size threshold. Works on Windows, macOS, and Linux.
-    """
-    # Determine the appropriate base path for application data based on the OS
-    if sys.platform == "win32":
-        # Windows: C:\Users\USERNAME\AppData\Local
-        base_path = Path(os.getenv('LOCALAPPDATA'))
-    elif sys.platform == "darwin":
-        # macOS: /Users/USERNAME/Library/Application Support
-        base_path = Path.home() / 'Library/Application Support'
-    else:
-        # Linux: /home/USERNAME/.local/share (standard)
-        base_path = Path.home() / '.local/share'
-
-    profile_path = base_path / 'SteamKeyChecker' / 'ChromeProfile'
-    
-    MAX_SIZE_MB = 500
-    MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
-
-    if profile_path.exists() and profile_path.is_dir():
-        try:
-            profile_size = get_dir_size(profile_path)
-            size_in_mb = profile_size / (1024 * 1024)
-            
-            if profile_size > MAX_SIZE_BYTES:
-                print(f"> Chrome profile size ({size_in_mb:.1f} MB) exceeds the {MAX_SIZE_MB} MB limit.")
-                print("> Resetting profile to prevent issues. You will need to log in again.")
-                shutil.rmtree(profile_path)
-            else:
-                print(f"> Using existing Chrome profile (Size: {size_in_mb:.1f} MB).")
-        except Exception as e:
-            print(f"[WARNING] Could not check or clear Chrome profile. A new session will be created. Error: {e}")
-    else:
-        print("> No existing Chrome profile found. A new one will be created to save your login.")
-
-    profile_path.parent.mkdir(parents=True, exist_ok=True)
-    return profile_path
-
-# --- END OF NEW HELPER FUNCTIONS ---
-
 def is_logged_in(driver: webdriver.Chrome) -> bool:
     """
     Check if the user is logged in by looking for a specific navigation element
@@ -159,8 +97,7 @@ def wait_for_manual_login(driver: webdriver.Chrome) -> None:
     print("The script has detected you are not logged in.")
     print("Please sign in to your Steam Partner account in the browser window.")
     input("Once you are logged in, press Enter here to continue…")
-    driver.refresh()
-    time.sleep(3) # Allow ample time for the page to refresh and load post-login
+    time.sleep(1) # Allow ample time for the page to refresh and load post-login
 
 def safe_get_text(driver: webdriver.Chrome, xpath: str) -> str:
     """Safely return an element's text. Returns an empty string if not found."""
@@ -235,10 +172,10 @@ def check_keys_and_save(driver: webdriver.Chrome, csv_path: Path) -> None:
             continue
             
         # Extract data from the results table
-        status = safe_get_text(driver, '/html/body/div[7]/table[1]/tbody/tr[2]/td[1]/span')
-        time_activated = safe_get_text(driver, '/html/body/div[7]/table[1]/tbody/tr[2]/td[2]')
-        package = safe_get_text(driver, '/html/body/div[7]/table[1]/tbody/tr[2]/td[3]/a')
-        tag = safe_get_text(driver, '/html/body/div[7]/table[1]/tbody/tr[2]/td[4]')
+        status = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[1]/span')
+        time_activated = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[2]')
+        package = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[3]/a')
+        tag = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[4]')
 
         # Update the DataFrame
         df.at[idx, 'Status'] = status
@@ -277,13 +214,7 @@ def main() -> None:
     try:
         print("Initializing Steam CD-Key Checker Bot...")
         
-        # Manage the persistent Chrome profile before setting options
-        profile_path = manage_chrome_profile()
-        
         chrome_opts = webdriver.ChromeOptions()
-        # Add the argument to use the persistent profile
-        chrome_opts.add_argument(f"--user-data-dir={profile_path}")
-        
         chrome_opts.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
         chrome_opts.add_experimental_option("useAutomationExtension", False)
         chrome_opts.add_argument("--log-level=3")
@@ -311,14 +242,10 @@ def main() -> None:
             print("\n[ERROR] Failed to connect to Steam. Please check your internet connection.")
             sys.exit(1)
 
-        # Use the new, more reliable login check
+        # Check if login is needed. If so, wait for manual login without further checks.
         if not is_logged_in(driver):
             wait_for_manual_login(driver)
-            if not is_logged_in(driver):
-                print("\n[ERROR] Login was not successful. Exiting to prevent errors.")
-                sys.exit(1)
         else:
-            # Add a small confirmation message if already logged in
             print("> Already logged in to Steam Partner.")
 
         # Interactive command loop
