@@ -1,7 +1,7 @@
 r"""
 Steam CD-Key Checker Bot
 ────────────────────────────────────────────────────────────────────────
-Version: 1.1
+Version: 1.3
 
 Description:
 Reads 'sent.csv' from the user's Desktop, queries each key on the 
@@ -115,12 +115,30 @@ def check_keys_and_save(driver: webdriver.Chrome, csv_path: Path) -> None:
     print(f"\n> Reading input file: {csv_path}")
     try:
         # Ensure CD Keys are read as strings to preserve formatting (e.g., leading zeros)
-        df = pd.read_csv(csv_path, dtype={'CD Key': str})
+        df = pd.read_csv(csv_path, dtype={'CD Key': str}, encoding='utf-8-sig')
     except FileNotFoundError:
         print(f"  [ERROR] File not found. Please ensure '{csv_path.name}' is on your Desktop.")
         return
+    except pd.errors.EmptyDataError:
+        print(f"  [ERROR] The file '{csv_path.name}' is empty or has no columns.")
+        print("  Please ensure the file is not empty and its first line is exactly 'CD Key'.")
+        return
+    except pd.errors.ParserError as exc:
+        print(f"  [ERROR] The file '{csv_path.name}' seems to have a formatting error.")
+        print("  Please check the file for extra commas or incorrectly structured lines.")
+        print(f"  Details from parser: {exc}")
+        return
+    except UnicodeDecodeError:
+        print(f"  [ERROR] The file '{csv_path.name}' has an invalid character encoding.")
+        print("  Please open it in a text editor and re-save it with 'UTF-8' encoding.")
+        return
+    except PermissionError:
+        print(f"  [ERROR] Permission denied to read the file '{csv_path.name}'.")
+        print("  Please check the file's security permissions (Right-click > Get Info > Sharing & Permissions).")
+        return
     except Exception as exc:
-        print(f"  [ERROR] Could not read the CSV file. It might be open, corrupted, or formatted incorrectly.")
+        print(f"  [ERROR] An unexpected error occurred while reading the CSV file.")
+        print("  It might be open in another program (like Excel) or corrupted.")
         print(f"  Details: {exc}")
         return
 
