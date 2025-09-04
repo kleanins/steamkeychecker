@@ -1,6 +1,6 @@
 # Steam CD-Key Checker Bot
 ────────────────────────────────────────────────────────────────────────
-Version: 1.2
+Version: 1.3
 
 ## Description
 

@@ -74,23 +74,6 @@ def get_desktop_path() -> Path:
 
 DESKTOP_PATH = get_desktop_path()
 
-def is_logged_in(driver: webdriver.Chrome) -> bool:
-    """
-    Check if the user is logged in by looking for a specific navigation element
-    (the one with 'Dashboard', 'Tools', etc.) which only appears after login.
-    This is much more reliable than checking the URL.
-    """
-    try:
-        # Look for the main navigation bar container. If it exists, we are logged in.
-        driver.find_element(By.CLASS_NAME, "partner_nav_content")
-        return True
-    except NoSuchElementException:
-        # If the element is not found, we are not logged in.
-        return False
-    except Exception:
-        # For any other unexpected errors, assume not logged in.
-        return False
-
 def wait_for_manual_login(driver: webdriver.Chrome) -> None:
     """Pause execution until the user finishes manual sign-in."""
     print("\n[ACTION REQUIRED]")
@@ -260,11 +243,8 @@ def main() -> None:
             print("\n[ERROR] Failed to connect to Steam. Please check your internet connection.")
             sys.exit(1)
 
-        # Check if login is needed. If so, wait for manual login without further checks.
-        if not is_logged_in(driver):
-            wait_for_manual_login(driver)
-        else:
-            print("> Already logged in to Steam Partner.")
+        # Always wait for the user to log in manually, as each session is new.
+        wait_for_manual_login(driver)
 
         # Interactive command loop
         while True:
