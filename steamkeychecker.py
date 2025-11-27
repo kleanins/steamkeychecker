@@ -1,7 +1,7 @@
 r"""
 Steam CD-Key Checker Bot
 ────────────────────────────────────────────────────────────────────────
-Version: 1.3
+Version: 1.4
 
 Description:
 Reads 'sent.csv' from the user's Desktop, queries each key on the 
@@ -18,7 +18,7 @@ Setup & Usage:
    
 3. Place your CSV file named 'sent.csv' on your Desktop.
 4. The file MUST have a column named 'CD Key'.
-5. Ensure that cdkeycontrol.py is on your Desktop. You can either download the ZIP from the GitHub Gist (click Download ZIP, then extract it to the Desktop), or copy the script’s code and paste it into a new .py file you create on the Desktop.
+5. Ensure that steamkeychecker.py is on your Desktop. You can either download the ZIP from the GitHub Gist (click Download ZIP, then extract it to the Desktop), or copy the script’s code and paste it into a new .py file you create on the Desktop.
 6. You can try running the .py file with a double-click. If that doesn’t work, follow the steps below to guarantee it runs.
 7. To run the script via PowerShell, open PowerShell and type the following commands.
    
@@ -36,10 +36,10 @@ Setup & Usage:
    cd "C:\Users\YOUR_USERNAME\OneDrive\Desktop"
 
    Once you are successfully in the Desktop folder, run the script:
-   python cdkeycontrol.py
+   python steamkeychecker.py
    
    If that fails
-   py cdkeycontrol.py
+   py steamkeychecker.py
 
 8. A Chrome window will open. Log in to your Steam Partner account.
 9. Follow the prompts in the console to start the process.
@@ -56,6 +56,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.remote_connection import LOGGER
 from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 
@@ -77,7 +79,6 @@ DESKTOP_PATH = get_desktop_path()
 def wait_for_manual_login(driver: webdriver.Chrome) -> None:
     """Pause execution until the user finishes manual sign-in."""
     print("\n[ACTION REQUIRED]")
-    print("The script has detected you are not logged in.")
     print("Please sign in to your Steam Partner account in the browser window.")
     input("Once you are logged in, press Enter here to continue…")
     time.sleep(1) # Allow ample time for the page to refresh and load post-login
@@ -155,28 +156,45 @@ def check_keys_and_save(driver: webdriver.Chrome, csv_path: Path) -> None:
             
         url = f"https://partner.steamgames.com/querycdkey/cdkey?l=english&cdkey={cd_key}&method=Query"
 
-        # Retry mechanism for transient network errors
+        # improved retry mechanism that waits for actual data, not fixed sleep
+        status = time_activated = package = tag = ''
+
         for attempt in range(1, 6):
             try:
                 driver.get(url)
-                time.sleep(0.5) 
-                if "Bad Gateway" not in driver.title and "Bad Gateway" not in driver.page_source:
-                    break
-                print(f"  [{processed_count}/{total}] Key {cd_key}: Received 502 Bad Gateway. Retrying ({attempt}/5)...")
+
+                # wait until results table appears
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/div[3]/table[1]'))
+                )
+
+                # ignore 502 pages
+                if "Bad Gateway" in driver.title or "Bad Gateway" in driver.page_source:
+                    raise Exception("Bad Gateway")
+
+                # first check package to confirm the page actually loaded the key data
+                package = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[3]/a')
+                if not package:
+                    raise Exception("Empty package, page likely not fully loaded")
+
+                # now safely read remaining fields
+                status = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[1]/span')
+                time_activated = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[2]')
+                tag = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[4]')
+
+                break
+
+            except Exception as exc:
+                print(
+                    f"  [{processed_count}/{total}] Key {cd_key}: error: {exc}. retrying ({attempt}/5)..."
+                )
+                status = time_activated = package = tag = ''
                 time.sleep(2)
-            except TimeoutException:
-                print(f"  [{processed_count}/{total}] Page timed out for key {cd_key}. Retrying ({attempt}/5)...")
-                time.sleep(5)
+
         else:
             print(f"  [ERROR] Failed to fetch data for key {cd_key} after 5 retries. Skipping.")
             df.at[idx, 'Status'] = 'Network Error'
             continue
-            
-        # Extract data from the results table
-        status = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[1]/span')
-        time_activated = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[2]')
-        package = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[3]/a')
-        tag = safe_get_text(driver, '/html/body/div[3]/table[1]/tbody/tr[2]/td[4]')
 
         # Update the DataFrame
         df.at[idx, 'Status'] = status
